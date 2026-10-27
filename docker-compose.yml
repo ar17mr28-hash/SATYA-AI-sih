@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: verifyai_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./verifyai.db
+      - SECRET_KEY=verifyai_production_secret_key_sih2026_9988
+    volumes:
+      - ./backend/uploads:/app/backend/uploads
+      - ./backend/reports:/app/backend/reports
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: verifyai_frontend
+    restart: always
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
