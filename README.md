@@ -1,4 +1,4 @@
-# VerifyAI
+# SATYA-AI
 ### Intelligent Document Authentication, AI Verification & Regulatory Compliance Platform
 **Smart India Hackathon 2026** &bull; **Problem Statement ID:** SIH26261  
 **Organization:** All India Council for Technical Education (AICTE)  
