@@ -1,9 +1,14 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 class ComplianceEngine:
     """
     Evaluates institutional applications against active AICTE regulatory rules.
     Outputs deterministic, explainable compliance results and overall risk scoring.
+    Recognizes four distinct evaluation states:
+    - satisfied (Pass: All regulatory conditions verified with clear documentary evidence)
+    - not_satisfied (Fail: A clear breach of criteria or total omission of mandatory document)
+    - requires_human_review (Ambiguity or discrepancy requiring human officer judgment)
+    - insufficient_evidence (Unreadable document, missing OCR engine, or illegible scan preventing machine determination)
     """
 
     @staticmethod
@@ -12,7 +17,8 @@ class ComplianceEngine:
         institution_data: Dict[str, Any],
         uploaded_doc_types: List[str],
         active_rules: List[Dict[str, Any]],
-        findings: List[Dict[str, Any]]
+        findings: List[Dict[str, Any]],
+        documents_with_extractions: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
         results = []
         satisfied_count = 0
@@ -23,6 +29,20 @@ class ComplianceEngine:
         campus_area = application_data.get("campus_area_acres", 5.0)
         built_up_area = application_data.get("built_up_area_sqm", 8000.0)
 
+        # Map unreadable document types from findings or documents
+        unreadable_doc_types = set()
+        for f in findings:
+            if f.get("finding_type") == "insufficient_evidence":
+                source = f.get("source_doc_title", "")
+                unreadable_doc_types.add(source.split("(")[0].strip().lower())
+
+        if documents_with_extractions:
+            for doc in documents_with_extractions:
+                doc_type = doc.get("document_type", "").lower()
+                ext = doc.get("extraction") or {}
+                if ext.get("ocr_method") == "ocr_unavailable_missing_engine" or doc.get("processing_status") == "PROCESSING_FAILED":
+                    unreadable_doc_types.add(doc_type)
+
         for rule in active_rules:
             rule_id = rule.get("id")
             rule_code = rule.get("rule_code")
@@ -30,9 +50,8 @@ class ComplianceEngine:
             required_docs = rule.get("required_documents") or []
             conditions = rule.get("validation_conditions") or {}
 
-            # Check required documents
+            # Check 1: Check if any required document is completely missing from upload list
             missing_docs = [rd for rd in required_docs if not any(rd.lower() in udt.lower() for udt in uploaded_doc_types)]
-
             if missing_docs:
                 results.append({
                     "rule_id": rule_id,
@@ -44,12 +63,31 @@ class ComplianceEngine:
                 })
                 continue
 
-            # Evaluate specific conditions
+            # Check 2: Check if required document is present but unreadable (insufficient evidence)
+            has_unreadable_req_doc = any(
+                any(rd.lower() in unreadable for unreadable in unreadable_doc_types)
+                for rd in required_docs
+            )
+            if has_unreadable_req_doc:
+                results.append({
+                    "rule_id": rule_id,
+                    "status": "insufficient_evidence",
+                    "score": 0.0,
+                    "explanation": (
+                        f"Cannot evaluate {rule_name}: Supporting document was uploaded but text could not be extracted "
+                        f"due to low image clarity or unindexed scan. Machine verification declined."
+                    ),
+                    "evidence_summary": "Extracted text content insufficient for deterministic rule verification.",
+                    "recommended_action": "Review officer must manually review original document scan or request re-upload."
+                })
+                continue
+
+            # Check 3: Evaluate specific quantitative conditions
             rule_satisfied = True
             reasons = []
             evidences = []
 
-            # 1. Faculty-Student Ratio (SFR)
+            # A. Faculty-Student Ratio (SFR)
             if "max_student_faculty_ratio" in conditions:
                 max_sfr = float(conditions["max_student_faculty_ratio"])
                 evidences.append(f"Current SFR: 1:{sfr} (Intake: {student_intake}, Faculty: {faculty_count})")
@@ -57,7 +95,7 @@ class ComplianceEngine:
                     rule_satisfied = False
                     reasons.append(f"Student-to-Faculty Ratio of 1:{sfr} exceeds the maximum allowable threshold of 1:{max_sfr}.")
 
-            # 2. Campus Land Requirement
+            # B. Campus Land Requirement
             if "min_campus_acres" in conditions:
                 min_acres = float(conditions["min_campus_acres"])
                 evidences.append(f"Stated Campus Area: {campus_area} Acres (Required: {min_acres} Acres)")
@@ -65,7 +103,7 @@ class ComplianceEngine:
                     rule_satisfied = False
                     reasons.append(f"Campus land area ({campus_area} Acres) is less than the regulatory minimum of {min_acres} Acres.")
 
-            # 3. Built-up Area Requirement
+            # C. Built-up Area Requirement
             if "min_built_up_sqm" in conditions:
                 min_sqm = float(conditions["min_built_up_sqm"])
                 evidences.append(f"Stated Built-up Area: {built_up_area} sqm (Required: {min_sqm} sqm)")
@@ -73,10 +111,15 @@ class ComplianceEngine:
                     rule_satisfied = False
                     reasons.append(f"Total built-up infrastructure area ({built_up_area} sqm) is below the minimum threshold ({min_sqm} sqm).")
 
-            # Check if any findings relate to this rule
-            has_related_finding = any(
-                f.get("severity") in ["warning", "critical"] and
-                any(kw.lower() in f.get("title", "").lower() for kw in required_docs)
+            # Check 4: Check if any findings relate to this rule
+            has_critical_finding = any(
+                f.get("severity") == "critical" and
+                any(kw.lower() in f.get("title", "").lower() or kw.lower() in f.get("source_doc_title", "").lower() for kw in required_docs)
+                for f in findings
+            )
+            has_warning_finding = any(
+                f.get("severity") == "warning" and
+                any(kw.lower() in f.get("title", "").lower() or kw.lower() in f.get("source_doc_title", "").lower() for kw in required_docs)
                 for f in findings
             )
 
@@ -89,7 +132,16 @@ class ComplianceEngine:
                     "evidence_summary": " | ".join(evidences),
                     "recommended_action": "Application requires infrastructure / faculty augmentation to meet AICTE standards."
                 })
-            elif has_related_finding:
+            elif has_critical_finding:
+                results.append({
+                    "rule_id": rule_id,
+                    "status": "not_satisfied",
+                    "score": 0.20,
+                    "explanation": f"Document criteria failed due to critical validation defect in submitted supporting records.",
+                    "evidence_summary": " | ".join(evidences),
+                    "recommended_action": "Review officer must examine critical defect before considering approval."
+                })
+            elif has_warning_finding:
                 results.append({
                     "rule_id": rule_id,
                     "status": "requires_human_review",

@@ -1,0 +1,229 @@
+{
+  "timestamp": "2026-10-28T16:31:00Z",
+  "total_cases": 20,
+  "passed_cases": 20,
+  "failed_cases": 0,
+  "accuracy": 100.0,
+  "precision": 100.0,
+  "recall": 100.0,
+  "f1_score": 100.0,
+  "confusion_matrix": {
+    "true_positives": 4,
+    "false_positives": 0,
+    "true_negatives": 16,
+    "false_negatives": 0
+  },
+  "latency": {
+    "avg_ms": 0.24,
+    "min_ms": 0.04,
+    "max_ms": 1.74,
+    "p95_ms": 1.74
+  },
+  "baseline_comparison": {
+    "verifyai_accuracy": 100.0,
+    "naive_baseline_accuracy": 85.0,
+    "accuracy_delta": 15.0
+  },
+  "cases": [
+    {
+      "case_id": "BENCH-001",
+      "category": "supported_exact",
+      "expected": "SUPPORTED",
+      "actual": "SUPPORTED",
+      "passed": true,
+      "latency_ms": 1.74,
+      "claims_count": 1,
+      "trust_score": 90.0
+    },
+    {
+      "case_id": "BENCH-002",
+      "category": "supported_paraphrased",
+      "expected": "SUPPORTED",
+      "actual": "SUPPORTED",
+      "passed": true,
+      "latency_ms": 0.29,
+      "claims_count": 1,
+      "trust_score": 90.0
+    },
+    {
+      "case_id": "BENCH-003",
+      "category": "hallucinated_number",
+      "expected": "CONTRADICTED",
+      "actual": "CONTRADICTED",
+      "passed": true,
+      "latency_ms": 0.17,
+      "claims_count": 1,
+      "trust_score": 0.0
+    },
+    {
+      "case_id": "BENCH-004",
+      "category": "hallucinated_date",
+      "expected": "CONTRADICTED",
+      "actual": "CONTRADICTED",
+      "passed": true,
+      "latency_ms": 0.26,
+      "claims_count": 1,
+      "trust_score": 0.0
+    },
+    {
+      "case_id": "BENCH-005",
+      "category": "contradictory_evidence",
+      "expected": "CONTRADICTED",
+      "actual": "CONTRADICTED",
+      "passed": true,
+      "latency_ms": 0.12,
+      "claims_count": 1,
+      "trust_score": 0.0
+    },
+    {
+      "case_id": "BENCH-006",
+      "category": "unsupported_plausible",
+      "expected": "UNVERIFIABLE",
+      "actual": "UNVERIFIABLE",
+      "passed": true,
+      "latency_ms": 0.2,
+      "claims_count": 1,
+      "trust_score": 0.0
+    },
+    {
+      "case_id": "BENCH-007",
+      "category": "missing_evidence",
+      "expected": "UNVERIFIABLE",
+      "actual": "UNVERIFIABLE",
+      "passed": true,
+      "latency_ms": 0.15,
+      "claims_count": 1,
+      "trust_score": 0.0
+    },
+    {
+      "case_id": "BENCH-008",
+      "category": "insufficient_support",
+      "expected": "INSUFFICIENT_SUPPORT",
+      "actual": "INSUFFICIENT_SUPPORT",
+      "passed": true,
+      "latency_ms": 0.22,
+      "claims_count": 1,
+      "trust_score": 25.0
+    },
+    {
+      "case_id": "BENCH-009",
+      "category": "prompt_injection_input",
+      "expected": "BLOCKED",
+      "actual": "BLOCKED",
+      "passed": true,
+      "latency_ms": 0.12,
+      "claims_count": 1,
+      "trust_score": 0.0
+    },
+    {
+      "case_id": "BENCH-010",
+      "category": "prompt_injection_document",
+      "expected": "BLOCKED",
+      "actual": "BLOCKED",
+      "passed": true,
+      "latency_ms": 0.13,
+      "claims_count": 1,
+      "trust_score": 25.0
+    },
+    {
+      "case_id": "BENCH-011",
+      "category": "empty_input",
+      "expected": "UNVERIFIABLE",
+      "actual": "UNVERIFIABLE",
+      "passed": true,
+      "latency_ms": 0.04,
+      "claims_count": 0,
+      "trust_score": 0.0
+    },
+    {
+      "case_id": "BENCH-012",
+      "category": "ambiguous_context",
+      "expected": "INSUFFICIENT_SUPPORT",
+      "actual": "INSUFFICIENT_SUPPORT",
+      "passed": true,
+      "latency_ms": 0.15,
+      "claims_count": 1,
+      "trust_score": 25.0
+    },
+    {
+      "case_id": "BENCH-013",
+      "category": "supported_exact",
+      "expected": "SUPPORTED",
+      "actual": "SUPPORTED",
+      "passed": true,
+      "latency_ms": 0.2,
+      "claims_count": 1,
+      "trust_score": 90.0
+    },
+    {
+      "case_id": "BENCH-014",
+      "category": "hallucinated_number",
+      "expected": "CONTRADICTED",
+      "actual": "CONTRADICTED",
+      "passed": true,
+      "latency_ms": 0.12,
+      "claims_count": 1,
+      "trust_score": 0.0
+    },
+    {
+      "case_id": "BENCH-015",
+      "category": "contradictory_evidence",
+      "expected": "CONTRADICTED",
+      "actual": "CONTRADICTED",
+      "passed": true,
+      "latency_ms": 0.14,
+      "claims_count": 1,
+      "trust_score": 0.0
+    },
+    {
+      "case_id": "BENCH-016",
+      "category": "hallucinated_number",
+      "expected": "CONTRADICTED",
+      "actual": "CONTRADICTED",
+      "passed": true,
+      "latency_ms": 0.14,
+      "claims_count": 1,
+      "trust_score": 0.0
+    },
+    {
+      "case_id": "BENCH-017",
+      "category": "supported_exact",
+      "expected": "SUPPORTED",
+      "actual": "SUPPORTED",
+      "passed": true,
+      "latency_ms": 0.14,
+      "claims_count": 1,
+      "trust_score": 90.0
+    },
+    {
+      "case_id": "BENCH-018",
+      "category": "prompt_injection_document",
+      "expected": "BLOCKED",
+      "actual": "BLOCKED",
+      "passed": true,
+      "latency_ms": 0.15,
+      "claims_count": 1,
+      "trust_score": 25.0
+    },
+    {
+      "case_id": "BENCH-019",
+      "category": "prompt_injection_input",
+      "expected": "BLOCKED",
+      "actual": "BLOCKED",
+      "passed": true,
+      "latency_ms": 0.1,
+      "claims_count": 1,
+      "trust_score": 0.0
+    },
+    {
+      "case_id": "BENCH-020",
+      "category": "unsupported_plausible",
+      "expected": "UNVERIFIABLE",
+      "actual": "UNVERIFIABLE",
+      "passed": true,
+      "latency_ms": 0.18,
+      "claims_count": 1,
+      "trust_score": 0.0
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, UserCheck, LogOut, Menu, User as UserIcon } from 'lucide-react';
+import { Shield, UserCheck, LogOut, Menu, User as UserIcon, Zap } from 'lucide-react';
 import { User } from '../types';
 import { NotificationDropdown } from './NotificationDropdown';
 
@@ -64,6 +64,16 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onToggleSidebar,
 
           {/* Right User Bar */}
           <div className="flex items-center gap-3 sm:gap-4">
+            <button
+              onClick={() => onNavigate && onNavigate('/verification-studio')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-royal-600 to-cyan-600 hover:from-royal-500 hover:to-cyan-500 text-white shadow-sm shadow-royal-900/30 transition-all border border-cyan-400/30"
+              title="Launch AI Response Verification Studio & Benchmark"
+            >
+              <Zap className="w-3.5 h-3.5 text-cyan-200 fill-cyan-200" />
+              <span className="hidden sm:inline">AI Studio & Benchmark</span>
+              <span className="sm:hidden">Studio</span>
+            </button>
+
             {user ? (
               <>
                 <NotificationDropdown onNavigate={onNavigate} />

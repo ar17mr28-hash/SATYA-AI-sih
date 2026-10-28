@@ -9,6 +9,7 @@ import { SubmitApplicationPage } from './pages/SubmitApplicationPage';
 import { ApplicationDetailPage } from './pages/ApplicationDetailPage';
 import { OfficerReviewPage } from './pages/OfficerReviewPage';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { VerificationStudioPage } from './pages/VerificationStudioPage';
 import { api } from './services/api';
 import { User, ApplicationItem } from './types';
 
@@ -130,6 +131,10 @@ export function App() {
           onQuickLogin={handleQuickLoginFromLanding}
         />
       );
+    }
+
+    if (currentPath === '/verification-studio' || currentPath === '/benchmark') {
+      return <VerificationStudioPage />;
     }
 
     if (currentPath === '/login' || !user) {

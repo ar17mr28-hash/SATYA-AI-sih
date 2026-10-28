@@ -108,7 +108,8 @@ def execute_ai_validation_pipeline(app_id: int, db: Session):
         institution_data=inst_data,
         uploaded_doc_types=uploaded_doc_types,
         active_rules=rules_payload,
-        findings=created_findings
+        findings=created_findings,
+        documents_with_extractions=docs_payload
     )
 
     for res in compliance_eval["results"]:
@@ -266,6 +267,9 @@ def trigger_reaudit(
     app = db.query(Application).filter(Application.id == application_id).first()
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
+
+    if current_user.role == "institution_admin" and current_user.institution_id != app.institution_id:
+        raise HTTPException(status_code=403, detail="Not authorized to trigger re-audit for this application")
 
     execute_ai_validation_pipeline(app.id, db)
     log_audit(db, action="AI_REAUDIT_TRIGGERED", resource_type="Application", resource_id=str(app.id), user_id=current_user.id)

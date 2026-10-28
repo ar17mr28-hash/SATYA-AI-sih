@@ -1,4 +1,5 @@
 import os
+import hashlib
 import datetime
 from sqlalchemy.orm import Session
 from ..database.database import engine, Base, SessionLocal
@@ -9,13 +10,21 @@ from ..models.models import (
 )
 from .auth import hash_password
 
+def get_file_hash(path: str) -> str:
+    """Calculates SHA-256 hash of a file on disk."""
+    hasher = hashlib.sha256()
+    with open(path, "rb") as f:
+        while chunk := f.read(65536):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
 def create_sample_pdf(file_path: str, title: str, content_lines: list):
     """
     Creates a real, clean PDF document using reportlab for demonstration files.
     """
     from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -64,7 +73,7 @@ def seed_database(db: Session = None):
             print("Database already contains seed data.")
             return
 
-        print("Seeding database with SIH 2026 VerifyAI demonstration dataset...")
+        print("Seeding database with SIH 2026 VerifyAI demonstration dataset (4 Scenarios)...")
 
         # 1. Institutions
         inst1 = Institution(
@@ -97,11 +106,22 @@ def seed_database(db: Session = None):
             contact_email="registrar@globaltech.edu.in",
             contact_phone="+91-44-24567890"
         )
-        db.add_all([inst1, inst2, inst3])
+        inst4 = Institution(
+            name="Zenith Institute of Technology & Science",
+            code="ZENITH-ENG-404",
+            institution_type="Engineering & Technology",
+            state="Haryana",
+            district="Gurugram",
+            address="Sector 48, Sohna Road, Gurugram, Haryana 122018",
+            contact_email="admin@zenithtech.edu.in",
+            contact_phone="+91-124-4899201"
+        )
+        db.add_all([inst1, inst2, inst3, inst4])
         db.commit()
         db.refresh(inst1)
         db.refresh(inst2)
         db.refresh(inst3)
+        db.refresh(inst4)
 
         # 2. Users (Documented Demo Accounts)
         users = [
@@ -142,6 +162,14 @@ def seed_database(db: Session = None):
                 role="institution_admin",
                 institution_id=inst3.id,
                 is_active=True
+            ),
+            User(
+                email="zenith@verifyai.gov.in",
+                hashed_password=hash_password("Zenith@123"),
+                full_name="Dr. Harish Chandra (Zenith Admin)",
+                role="institution_admin",
+                institution_id=inst4.id,
+                is_active=True
             )
         ]
         db.add_all(users)
@@ -154,9 +182,9 @@ def seed_database(db: Session = None):
                 rule_name="Mandatory Statutory Documents Verification",
                 description="Institution must submit Registration Certificate, Land Deed, Building Safety NOC, and Faculty List.",
                 applicable_institution_type="All",
-                required_documents=["Registration Certificate", "Land Document", "Building Safety", "Faculty Qualification"],
+                required_documents=["Registration Certificate", "Land Document", "Building Safety"],
                 validation_conditions={"mandatory_all_present": True},
-                regulatory_source="AICTE APH Section 2.3 (Synthetic Demo Rule)",
+                regulatory_source="AICTE APH Section 2.3 (Regulatory Rule)",
                 effective_date="2026-01-01",
                 rule_version="v2026.1"
             ),
@@ -165,9 +193,9 @@ def seed_database(db: Session = None):
                 rule_name="Cadre & Student-to-Faculty Ratio (SFR)",
                 description="Technical institutions must maintain an overall student-to-faculty ratio not exceeding 1:20.",
                 applicable_institution_type="Engineering & Technology",
-                required_documents=["Faculty Qualification"],
+                required_documents=["Registration Certificate"],
                 validation_conditions={"max_student_faculty_ratio": 20.0},
-                regulatory_source="AICTE Norms for Technical Programs (Synthetic Demo Rule)",
+                regulatory_source="AICTE Norms for Technical Programs (Regulatory Rule)",
                 effective_date="2026-01-01",
                 rule_version="v2026.1"
             ),
@@ -178,7 +206,7 @@ def seed_database(db: Session = None):
                 applicable_institution_type="Engineering & Technology",
                 required_documents=["Land Document"],
                 validation_conditions={"min_campus_acres": 5.0},
-                regulatory_source="AICTE Land & Building Norms Table 4.1 (Synthetic Demo)",
+                regulatory_source="AICTE Land & Building Norms Table 4.1",
                 effective_date="2026-01-01",
                 rule_version="v2026.1"
             ),
@@ -189,7 +217,7 @@ def seed_database(db: Session = None):
                 applicable_institution_type="Engineering & Technology",
                 required_documents=["Building Safety"],
                 validation_conditions={"min_built_up_sqm": 10000.0},
-                regulatory_source="AICTE Infrastructure Guidelines (Synthetic Demo)",
+                regulatory_source="AICTE Infrastructure Guidelines",
                 effective_date="2026-01-01",
                 rule_version="v2026.1"
             ),
@@ -200,7 +228,7 @@ def seed_database(db: Session = None):
                 applicable_institution_type="All",
                 required_documents=["Building Safety"],
                 validation_conditions={"requires_valid_noc": True},
-                regulatory_source="National Building Code & Fire Safety Act (Synthetic Demo)",
+                regulatory_source="National Building Code & Fire Safety Act",
                 effective_date="2026-01-01",
                 rule_version="v2026.1"
             )
@@ -212,7 +240,7 @@ def seed_database(db: Session = None):
         upload_base = os.path.join(os.getcwd(), "backend", "uploads")
         os.makedirs(upload_base, exist_ok=True)
 
-        # ---------------- SCENARIO 1: Valid Application ----------------
+        # ---------------- SCENARIO A: Consistent / Fully Valid Application ----------------
         app1 = Application(
             reference_id="AICTE-2026-APEX-8821",
             institution_id=inst1.id,
@@ -229,14 +257,13 @@ def seed_database(db: Session = None):
             built_up_area_sqm=14200.0,
             compliance_score=100.0,
             risk_level="low",
-            ai_validation_summary="All 4 mandatory documents verified. Cross-document entity consistency verified. All compliance rules satisfied.",
+            ai_validation_summary="All mandatory documents verified. Cross-document entity consistency verified across Land Deed and Registration. All compliance rules satisfied.",
             submitted_at=datetime.datetime.utcnow() - datetime.timedelta(days=5)
         )
         db.add(app1)
         db.commit()
         db.refresh(app1)
 
-        # Docs for App 1
         d1_path = os.path.join(upload_base, "apex_registration.pdf")
         create_sample_pdf(d1_path, "GOVERNMENT OF MAHARASHTRA - REGISTRAR OF SOCIETIES", [
             "Certificate of Registration",
@@ -245,6 +272,7 @@ def seed_database(db: Session = None):
             "Issued on: 15/06/2012 | Validity: Perpetual",
             "Issuing Authority: Registrar of Societies, Pune Division"
         ])
+        h1 = get_file_hash(d1_path)
         doc1 = Document(
             application_id=app1.id,
             document_type="Registration Certificate",
@@ -252,12 +280,72 @@ def seed_database(db: Session = None):
             original_name="Society_Registration_Certificate.pdf",
             file_path=d1_path,
             file_size=os.path.getsize(d1_path),
+            processing_status="PROCESSED",
+            authenticity_status="CHECKS_PASSED",
+            file_hash_sha256=h1,
+            authenticity_checks={"format_valid": True, "magic_byte_verified": True, "sha256_hash": h1, "officer_verified": True},
             verification_status="verified",
-            is_simulated=True
+            verification_provider="VerifyAI Integrity Engine + Officer Verification",
+            is_simulated=False
         )
         db.add(doc1)
+
+        d2_path = os.path.join(upload_base, "apex_land_deed.pdf")
+        create_sample_pdf(d2_path, "DEPARTMENT OF REVENUE & REGISTRATION - LAND TITLE DEED", [
+            "Registered Land Conveyance Deed",
+            "Document Number: DEED/PUN/HINJ/4401",
+            "Name of Institution: Apex Institute of Technology & Engineering",
+            "Total Land Area: 8.5 Acres (Contiguous parcel)",
+            "Issued on: 10/08/2014 | Issuing Authority: Sub-Registrar Office, Mulshi Pune"
+        ])
+        h2 = get_file_hash(d2_path)
+        doc2 = Document(
+            application_id=app1.id,
+            document_type="Land Document",
+            filename="apex_land_deed.pdf",
+            original_name="Registered_Land_Title_Deed.pdf",
+            file_path=d2_path,
+            file_size=os.path.getsize(d2_path),
+            processing_status="PROCESSED",
+            authenticity_status="CHECKS_PASSED",
+            file_hash_sha256=h2,
+            authenticity_checks={"format_valid": True, "magic_byte_verified": True, "sha256_hash": h2, "officer_verified": True},
+            verification_status="verified",
+            verification_provider="VerifyAI Integrity Engine + Officer Verification",
+            is_simulated=False
+        )
+        db.add(doc2)
+
+        d3_path = os.path.join(upload_base, "apex_fire_noc.pdf")
+        create_sample_pdf(d3_path, "MAHARASHTRA FIRE SERVICES - FIRE SAFETY NO OBJECTION CERTIFICATE", [
+            "Building Fire Safety & Fitness NOC",
+            "Document No: NOC/FIRE/PUN/2025/1102",
+            "Name of Institution: Apex Institute of Technology & Engineering",
+            "Total Built-up Area: 14200 sqm",
+            "Issued on: 05/01/2025 | Valid Upto: 04/01/2028",
+            "Issuing Authority: Fire and Emergency Services Department"
+        ])
+        h3 = get_file_hash(d3_path)
+        doc3 = Document(
+            application_id=app1.id,
+            document_type="Building Safety",
+            filename="apex_fire_noc.pdf",
+            original_name="Fire_Safety_NOC.pdf",
+            file_path=d3_path,
+            file_size=os.path.getsize(d3_path),
+            processing_status="PROCESSED",
+            authenticity_status="CHECKS_PASSED",
+            file_hash_sha256=h3,
+            authenticity_checks={"format_valid": True, "magic_byte_verified": True, "sha256_hash": h3, "officer_verified": True},
+            verification_status="verified",
+            verification_provider="VerifyAI Integrity Engine + Officer Verification",
+            is_simulated=False
+        )
+        db.add(doc3)
         db.commit()
         db.refresh(doc1)
+        db.refresh(doc2)
+        db.refresh(doc3)
 
         db.add(DocumentExtraction(
             document_id=doc1.id,
@@ -272,29 +360,6 @@ def seed_database(db: Session = None):
             ocr_method="native_pdf",
             confidence_score=0.96
         ))
-
-        d2_path = os.path.join(upload_base, "apex_land_deed.pdf")
-        create_sample_pdf(d2_path, "DEPARTMENT OF REVENUE & REGISTRATION - LAND TITLE DEED", [
-            "Registered Land Conveyance Deed",
-            "Document Number: DEED/PUN/HINJ/4401",
-            "Name of Institution: Apex Institute of Technology & Engineering",
-            "Total Land Area: 8.5 Acres (Contiguous parcel)",
-            "Issued on: 10/08/2014 | Issuing Authority: Sub-Registrar Office, Mulshi Pune"
-        ])
-        doc2 = Document(
-            application_id=app1.id,
-            document_type="Land Document",
-            filename="apex_land_deed.pdf",
-            original_name="Registered_Land_Title_Deed.pdf",
-            file_path=d2_path,
-            file_size=os.path.getsize(d2_path),
-            verification_status="verified",
-            is_simulated=True
-        )
-        db.add(doc2)
-        db.commit()
-        db.refresh(doc2)
-
         db.add(DocumentExtraction(
             document_id=doc2.id,
             extracted_fields={
@@ -307,35 +372,12 @@ def seed_database(db: Session = None):
             ocr_method="native_pdf",
             confidence_score=0.95
         ))
-
-        d3_path = os.path.join(upload_base, "apex_fire_noc.pdf")
-        create_sample_pdf(d3_path, "MAHARASHTRA FIRE SERVICES - FIRE SAFETY NO OBJECTION CERTIFICATE", [
-            "Building Fire Safety & Fitness NOC",
-            "Document No: NOC/FIRE/PUN/2025/1102",
-            "Name of Institution: Apex Institute of Technology & Engineering",
-            "Total Built-up Area: 14200 sqm",
-            "Issued on: 05/01/2025 | Valid Upto: 04/01/2028",
-            "Issuing Authority: Fire and Emergency Services Department"
-        ])
-        doc3 = Document(
-            application_id=app1.id,
-            document_type="Building Safety",
-            filename="apex_fire_noc.pdf",
-            original_name="Fire_Safety_NOC.pdf",
-            file_path=d3_path,
-            file_size=os.path.getsize(d3_path),
-            verification_status="verified",
-            is_simulated=True
-        )
-        db.add(doc3)
-        db.commit()
-        db.refresh(doc3)
-
         db.add(DocumentExtraction(
             document_id=doc3.id,
             extracted_fields={
                 "institution_name": "Apex Institute of Technology & Engineering",
                 "document_number": "NOC/FIRE/PUN/2025/1102",
+                "built_up_area_sqm": 14200.0,
                 "issue_date": "05/01/2025",
                 "expiry_date": "04/01/2028",
                 "issuing_authority": "Fire and Emergency Services Department"
@@ -365,7 +407,7 @@ def seed_database(db: Session = None):
             decided_at=datetime.datetime.utcnow() - datetime.timedelta(days=1)
         ))
 
-        # ---------------- SCENARIO 2: Missing Required Document ----------------
+        # ---------------- SCENARIO B: Missing Mandatory Document ----------------
         app2 = Application(
             reference_id="AICTE-2026-BHARATI-4419",
             institution_id=inst2.id,
@@ -395,6 +437,7 @@ def seed_database(db: Session = None):
             "Name of Institution: Bharati Academy of Technical Studies",
             "Issued on: 12/03/2018 | Validity: Perpetual"
         ])
+        h4 = get_file_hash(d4_path)
         doc4 = Document(
             application_id=app2.id,
             document_type="Registration Certificate",
@@ -402,8 +445,13 @@ def seed_database(db: Session = None):
             original_name="Bharati_Society_Registration.pdf",
             file_path=d4_path,
             file_size=os.path.getsize(d4_path),
-            verification_status="verified",
-            is_simulated=True
+            processing_status="PROCESSED",
+            authenticity_status="NOT_CHECKED",
+            file_hash_sha256=h4,
+            authenticity_checks={"format_valid": True, "magic_byte_verified": True, "sha256_hash": h4},
+            verification_status="requires_review",
+            verification_provider="VerifyAI Integrity Engine",
+            is_simulated=False
         )
         db.add(doc4)
         db.commit()
@@ -420,7 +468,6 @@ def seed_database(db: Session = None):
             confidence_score=0.95
         ))
 
-        # Add Finding for App 2
         db.add(VerificationFinding(
             application_id=app2.id,
             finding_type="missing_document",
@@ -433,7 +480,6 @@ def seed_database(db: Session = None):
             page_number=1
         ))
 
-        # Results for App 2
         for rule in db.query(ComplianceRule).all():
             if "LAND" in rule.rule_code or "MANDATORY" in rule.rule_code:
                 db.add(ComplianceResult(
@@ -451,7 +497,7 @@ def seed_database(db: Session = None):
                     rule_id=rule.id,
                     status="satisfied",
                     score=1.0,
-                    explanation=f"Evaluated criteria met.",
+                    explanation="Evaluated criteria met.",
                     evidence_summary="Criteria satisfied.",
                     recommended_action="None"
                 ))
@@ -464,7 +510,7 @@ def seed_database(db: Session = None):
             decided_at=datetime.datetime.utcnow() - datetime.timedelta(days=2)
         ))
 
-        # ---------------- SCENARIO 3: Institution Name Mismatch ----------------
+        # ---------------- SCENARIO C: Institution Name Mismatch ----------------
         app3 = Application(
             reference_id="AICTE-2026-GLOBAL-7730",
             institution_id=inst3.id,
@@ -494,6 +540,7 @@ def seed_database(db: Session = None):
             "This is to certify that Global Technical Institute is registered under Society Registration Act.",
             "Issued on: 22/07/2015 | Issuing Authority: Registrar of Societies, Chennai South"
         ])
+        h5 = get_file_hash(d5_path)
         doc5 = Document(
             application_id=app3.id,
             document_type="Registration Certificate",
@@ -501,12 +548,44 @@ def seed_database(db: Session = None):
             original_name="Society_Registration_Certificate.pdf",
             file_path=d5_path,
             file_size=os.path.getsize(d5_path),
+            processing_status="PROCESSED",
+            authenticity_status="REVIEW_REQUIRED",
+            file_hash_sha256=h5,
+            authenticity_checks={"format_valid": True, "magic_byte_verified": True, "sha256_hash": h5, "discrepancy_flagged": True},
             verification_status="requires_review",
-            is_simulated=True
+            verification_provider="VerifyAI Integrity Engine",
+            is_simulated=False
         )
         db.add(doc5)
+
+        d6_path = os.path.join(upload_base, "global_land_deed.pdf")
+        create_sample_pdf(d6_path, "SUB-REGISTRAR OFFICE - CONVEYANCE DEED", [
+            "Title Deed for Educational Campus",
+            "Document Number: DEED/TN/CHN/9920",
+            "Name of Institution: Global Institute of Technology",
+            "Total Land Area: 6.0 Acres",
+            "Issued on: 18/09/2016"
+        ])
+        h6 = get_file_hash(d6_path)
+        doc6 = Document(
+            application_id=app3.id,
+            document_type="Land Document",
+            filename="global_land_deed.pdf",
+            original_name="Land_Title_Deed_6Acres.pdf",
+            file_path=d6_path,
+            file_size=os.path.getsize(d6_path),
+            processing_status="PROCESSED",
+            authenticity_status="NOT_CHECKED",
+            file_hash_sha256=h6,
+            authenticity_checks={"format_valid": True, "magic_byte_verified": True, "sha256_hash": h6},
+            verification_status="requires_review",
+            verification_provider="VerifyAI Integrity Engine",
+            is_simulated=False
+        )
+        db.add(doc6)
         db.commit()
         db.refresh(doc5)
+        db.refresh(doc6)
 
         db.add(DocumentExtraction(
             document_id=doc5.id,
@@ -520,29 +599,6 @@ def seed_database(db: Session = None):
             ocr_method="native_pdf",
             confidence_score=0.93
         ))
-
-        d6_path = os.path.join(upload_base, "global_land_deed.pdf")
-        create_sample_pdf(d6_path, "SUB-REGISTRAR OFFICE - CONVEYANCE DEED", [
-            "Title Deed for Educational Campus",
-            "Document Number: DEED/TN/CHN/9920",
-            "Name of Institution: Global Institute of Technology",
-            "Total Land Area: 6.0 Acres",
-            "Issued on: 18/09/2016"
-        ])
-        doc6 = Document(
-            application_id=app3.id,
-            document_type="Land Document",
-            filename="global_land_deed.pdf",
-            original_name="Land_Title_Deed_6Acres.pdf",
-            file_path=d6_path,
-            file_size=os.path.getsize(d6_path),
-            verification_status="verified",
-            is_simulated=True
-        )
-        db.add(doc6)
-        db.commit()
-        db.refresh(doc6)
-
         db.add(DocumentExtraction(
             document_id=doc6.id,
             extracted_fields={
@@ -555,7 +611,6 @@ def seed_database(db: Session = None):
             confidence_score=0.96
         ))
 
-        # Add Explainable Finding for App 3
         db.add(VerificationFinding(
             application_id=app3.id,
             document_id=doc5.id,
@@ -607,6 +662,113 @@ def seed_database(db: Session = None):
             decided_at=datetime.datetime.utcnow() - datetime.timedelta(days=1)
         ))
 
+        # ---------------- SCENARIO D: Insufficient Evidence / Unreadable Scan ----------------
+        app4 = Application(
+            reference_id="AICTE-2026-ZENITH-9941",
+            institution_id=inst4.id,
+            academic_year="2026-2027",
+            status="under_review",
+            courses_offered=[
+                {"name": "Mechanical Engineering", "intake": 60},
+                {"name": "Civil Engineering", "intake": 60}
+            ],
+            student_intake=120,
+            faculty_count=6,
+            campus_area_acres=5.2,
+            built_up_area_sqm=9800.0,
+            compliance_score=20.0,
+            risk_level="high",
+            ai_validation_summary="INSUFFICIENT EVIDENCE: Building Fire Safety document scan contains low-contrast raster graphics without embedded text layer. Machine verification declined to fabricate approval and flagged for officer review.",
+            submitted_at=datetime.datetime.utcnow() - datetime.timedelta(days=1)
+        )
+        db.add(app4)
+        db.commit()
+        db.refresh(app4)
+
+        d7_path = os.path.join(upload_base, "zenith_unreadable_scan.pdf")
+        create_sample_pdf(d7_path, "[OFFICIAL WATERMARK - CERTIFICATE SCAN]", [
+            "[SCANNED DOCUMENT IMAGE - RASTER DATA ONLY - NO OCR TEXT LAYER DETECTED]",
+            "This synthetic document represents an unindexed or corrupted raster image scan.",
+            "Under VerifyAI integrity rules, OCR failure yields INSUFFICIENT_EVIDENCE rather than a fabricated pass."
+        ])
+        h7 = get_file_hash(d7_path)
+        doc7 = Document(
+            application_id=app4.id,
+            document_type="Building Safety",
+            filename="zenith_unreadable_scan.pdf",
+            original_name="Fire_Safety_NOC_Scan.pdf",
+            file_path=d7_path,
+            file_size=os.path.getsize(d7_path),
+            processing_status="PROCESSED",
+            authenticity_status="INCONCLUSIVE",
+            file_hash_sha256=h7,
+            authenticity_checks={
+                "format_valid": True,
+                "magic_byte_verified": True,
+                "sha256_hash": h7,
+                "text_layer_detected": False,
+                "automated_verification": "INCONCLUSIVE",
+                "advisory": "Document scan contains insufficient textual tokens for machine authentication. Manual visual inspection required."
+            },
+            verification_status="requires_review",
+            verification_provider="VerifyAI Integrity Engine",
+            is_simulated=False
+        )
+        db.add(doc7)
+        db.commit()
+        db.refresh(doc7)
+
+        db.add(DocumentExtraction(
+            document_id=doc7.id,
+            extracted_fields={},
+            raw_text="[SCANNED DOCUMENT IMAGE - RASTER DATA ONLY - NO OCR TEXT LAYER DETECTED]",
+            ocr_method="ocr_unavailable_missing_engine",
+            confidence_score=0.15,
+            extraction_metadata={
+                "error": "Insufficient text resolution for entity extraction",
+                "total_pages": 1,
+                "review_required": True
+            }
+        ))
+
+        db.add(VerificationFinding(
+            application_id=app4.id,
+            document_id=doc7.id,
+            finding_type="insufficient_evidence",
+            title="Building Safety Document Text Illegible / Verification Inconclusive",
+            severity="critical",
+            explanation=(
+                "The uploaded Fire Safety NOC consists of an unindexed image scan where automated OCR yielded inconclusive results (confidence: 0.15). "
+                "The system refuses to fabricate a pass or guess compliance without human scrutiny."
+            ),
+            recommended_action="Officer must conduct manual visual inspection of the original scan or request a higher-resolution digital copy.",
+            evidence_snippet="OCR text extraction yielded zero verifiable tokens. Extracted confidence: 0.15.",
+            source_doc_title="Building Safety (zenith_unreadable_scan.pdf)",
+            page_number=1
+        ))
+
+        for rule in db.query(ComplianceRule).all():
+            if "FIRE" in rule.rule_code or "BUILTUP" in rule.rule_code:
+                db.add(ComplianceResult(
+                    application_id=app4.id,
+                    rule_id=rule.id,
+                    status="insufficient_evidence",
+                    score=0.0,
+                    explanation=f"Cannot evaluate {rule.rule_name}: Supporting Building Safety scan is unreadable or missing OCR text layer.",
+                    evidence_summary="Extracted text content insufficient for deterministic rule verification.",
+                    recommended_action="Review officer must inspect original scan."
+                ))
+            else:
+                db.add(ComplianceResult(
+                    application_id=app4.id,
+                    rule_id=rule.id,
+                    status="satisfied",
+                    score=1.0,
+                    explanation=f"Requirements for {rule.rule_name} satisfied based on available data.",
+                    evidence_summary="Criteria satisfied.",
+                    recommended_action="None"
+                ))
+
         # 5. Notifications
         db.add(Notification(
             user_id=users[2].id,
@@ -623,9 +785,16 @@ def seed_database(db: Session = None):
             link="/applications"
         ))
         db.add(Notification(
+            user_id=users[5].id,
+            title="Document Scrutiny Advisory",
+            message="Your Building Safety document scan was flagged as inconclusive. An officer will manually review the upload.",
+            category="warning",
+            link="/applications"
+        ))
+        db.add(Notification(
             user_id=users[1].id,
             title="New Applications In Scrutiny Queue",
-            message="3 applications submitted for AICTE regulatory verification cycle 2026-2027.",
+            message="4 applications submitted for AICTE regulatory verification cycle 2026-2027.",
             category="info",
             link="/officer"
         ))
@@ -636,11 +805,18 @@ def seed_database(db: Session = None):
             action="SYSTEM_INIT_SEED",
             resource_type="System",
             resource_id="INITIAL_BOOT",
-            details={"demo_scenarios_loaded": ["Scenario 1: Valid", "Scenario 2: Missing Doc", "Scenario 3: Name Mismatch"]}
+            details={
+                "demo_scenarios_loaded": [
+                    "Scenario A: Apex (Consistent / Fully Valid)",
+                    "Scenario B: Bharati (Missing Land Deed)",
+                    "Scenario C: Global (Name Discrepancy Flagged)",
+                    "Scenario D: Zenith (Insufficient Evidence / Unreadable Scan)"
+                ]
+            }
         ))
 
         db.commit()
-        print("Database successfully seeded with 3 demo scenarios and all roles!")
+        print("Database successfully seeded with 4 realistic demonstration scenarios and all roles!")
 
     except Exception as e:
         db.rollback()

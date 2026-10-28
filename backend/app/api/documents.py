@@ -1,6 +1,8 @@
 import os
+import re
 import uuid
 import shutil
+import hashlib
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from fastapi.responses import FileResponse
@@ -38,18 +40,54 @@ async def upload_document(
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail=f"Unsupported file format. Allowed: {', '.join(ALLOWED_EXTENSIONS)}")
 
+    # Magic-byte file signature validation to prevent extension spoofing
+    MAGIC_SIGNATURES = {
+        ".pdf": [b"%PDF-"],
+        ".png": [b"\x89PNG\r\n\x1a\n"],
+        ".jpg": [b"\xff\xd8\xff"],
+        ".jpeg": [b"\xff\xd8\xff"],
+    }
+    initial_bytes = await file.read(16)
+    if not initial_bytes:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+
+    signatures = MAGIC_SIGNATURES.get(ext, [])
+    if not any(initial_bytes.startswith(sig) for sig in signatures):
+        raise HTTPException(
+            status_code=400,
+            detail=f"File signature mismatch. Uploaded file does not match its declared {ext} extension."
+        )
+
+    # Rewind stream after signature check
+    await file.seek(0)
+
     os.makedirs(UPLOAD_DIR, exist_ok=True)
-    unique_filename = f"{uuid.uuid4().hex}_{file.filename}"
-    file_path = os.path.join(UPLOAD_DIR, unique_filename)
+    # Sanitize filename against path traversal attacks (e.g. ../../)
+    raw_name = os.path.basename(file.filename)
+    safe_name = re.sub(r'[^a-zA-Z0-9_.-]', '_', raw_name)
+    unique_filename = f"{uuid.uuid4().hex}_{safe_name}"
+    file_path = os.path.abspath(os.path.join(UPLOAD_DIR, unique_filename))
 
-    # Save to disk
+    # Verify target directory boundary
+    if not file_path.startswith(os.path.abspath(UPLOAD_DIR)):
+        raise HTTPException(status_code=400, detail="Invalid target filename or path traversal detected")
+
+    # Save to disk while calculating SHA-256 hash and checking maximum size
+    hasher = hashlib.sha256()
+    total_size = 0
     with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        while chunk := await file.read(65536):
+            total_size += len(chunk)
+            if total_size > MAX_FILE_SIZE:
+                buffer.close()
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                raise HTTPException(status_code=400, detail="File size exceeds maximum allowable limit of 25MB")
+            hasher.update(chunk)
+            buffer.write(chunk)
 
-    file_size = os.path.getsize(file_path)
-    if file_size > MAX_FILE_SIZE:
-        os.remove(file_path)
-        raise HTTPException(status_code=400, detail="File size exceeds maximum allowable limit of 25MB")
+    file_size = total_size
+    file_hash_sha256 = hasher.hexdigest()
 
     # Run AI Document Parser
     parsed_result = DocumentParser.extract_text_from_file(file_path, file.content_type)
@@ -72,7 +110,17 @@ async def upload_document(
     elif parser_conf is not None:
         final_conf = parser_conf
 
-    # Save Document
+    # Genuine authenticity check metadata
+    authenticity_checks = {
+        "format_valid": True,
+        "magic_byte_verified": True,
+        "sha256_hash": file_hash_sha256,
+        "digital_signature_detected": False,
+        "external_registry_verification": "not_configured",
+        "advisory": "File format and SHA-256 integrity verified. Institutional authenticity requires external board verification or authorized officer review."
+    }
+
+    # Save Document with truthful statuses - never falsify verification
     new_doc = Document(
         application_id=app.id,
         document_type=document_type,
@@ -81,9 +129,13 @@ async def upload_document(
         file_path=file_path,
         file_size=file_size,
         mime_type=file.content_type or "application/pdf",
-        verification_status="verified",
-        verification_provider="VerifyAI AICTE Scrutiny Engine (Mock Verified)",
-        is_simulated=True
+        processing_status="PROCESSED" if (raw_text or parsed_result.get("total_pages", 0) > 0) else "PROCESSING_FAILED",
+        authenticity_status="NOT_CHECKED",
+        file_hash_sha256=file_hash_sha256,
+        authenticity_checks=authenticity_checks,
+        verification_status="requires_review",
+        verification_provider="VerifyAI Integrity Engine (Format & Hash Registered)",
+        is_simulated=False
     )
     db.add(new_doc)
     db.commit()
@@ -128,6 +180,17 @@ def download_document(
 
     if not os.path.exists(doc.file_path):
         raise HTTPException(status_code=404, detail="File on disk not found")
+
+    # Strict path traversal check
+    resolved_path = os.path.abspath(doc.file_path)
+    allowed_dirs = [
+        os.path.abspath(UPLOAD_DIR),
+        os.path.abspath(os.path.join(os.getcwd(), "backend", "uploads")),
+        os.path.abspath(os.path.join(os.getcwd(), "backend", "reports")),
+        os.path.abspath(os.path.join(os.getcwd(), "demo-data")),
+    ]
+    if not any(resolved_path.startswith(d) for d in allowed_dirs):
+        raise HTTPException(status_code=400, detail="Access denied: path traversal attempt detected")
 
     return FileResponse(
         path=doc.file_path,

@@ -211,6 +211,36 @@ class ApiService {
       method: 'POST'
     });
   }
+  // --- AI Response Verification & Evaluation Benchmark ---
+  async verifyResponse(payload: {
+    response_text: string;
+    evidence_sources: Array<{ source_id: string; title: string; text: string; page?: number }>;
+    query?: string;
+    scan_security?: boolean;
+  }): Promise<import('../types').VerifyResponse> {
+    return this.request<import('../types').VerifyResponse>('/verify', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async getVerificationHistory(limit = 20): Promise<import('../types').VerificationRunSummary[]> {
+    return this.request<import('../types').VerificationRunSummary[]>(`/verify/history?limit=${limit}`);
+  }
+
+  async getVerificationRun(runId: string): Promise<import('../types').VerifyResponse> {
+    return this.request<import('../types').VerifyResponse>(`/verify/${runId}`);
+  }
+
+  async runBenchmark(): Promise<import('../types').BenchmarkMetrics> {
+    return this.request<import('../types').BenchmarkMetrics>('/benchmark/run', {
+      method: 'POST'
+    });
+  }
+
+  async getLatestBenchmark(): Promise<import('../types').BenchmarkMetrics> {
+    return this.request<import('../types').BenchmarkMetrics>('/benchmark/latest');
+  }
 }
 
 export const api = new ApiService();

@@ -1,7 +1,7 @@
-# VerifyAI - Live Public Tunnel Launcher
-# This script ensures the local server and public tunnel are running.
-
-Write-Host "Checking if VerifyAI server is running on port 8000..." -ForegroundColor Cyan
+# VerifyAI - Live Public Tunnel Launcher (Auto-Reconnecting)
+Write-Host "=================================================" -ForegroundColor Cyan
+Write-Host "   VerifyAI AICTE Platform - Live Public Tunnel" -ForegroundColor Cyan
+Write-Host "=================================================" -ForegroundColor Cyan
 
 $serverRunning = Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue
 if (-not $serverRunning) {
@@ -11,7 +11,11 @@ if (-not $serverRunning) {
     Start-Sleep -Seconds 3
 }
 
-Write-Host "VerifyAI Server is Active on http://localhost:8000" -ForegroundColor Green
-Write-Host "Connecting to public HTTPS tunnel..." -ForegroundColor Cyan
+Write-Host "Local Server active at: http://localhost:8000" -ForegroundColor Green
+Write-Host "Launching persistent HTTPS tunnel (auto-reconnects on timeout)..." -ForegroundColor Cyan
 
-ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=15 -R 80:127.0.0.1:8000 serveo.net
+while ($true) {
+    ssh -p 443 -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL -o ServerAliveInterval=10 -R0:127.0.0.1:8000 a.pinggy.io "b:http"
+    Write-Host "Tunnel disconnected. Reconnecting in 3 seconds..." -ForegroundColor Yellow
+    Start-Sleep -Seconds 3
+}

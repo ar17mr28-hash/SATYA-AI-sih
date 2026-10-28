@@ -11,7 +11,9 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=sqlite:///./verifyai.db
-      - SECRET_KEY=verifyai_production_secret_key_sih2026_9988
+      - SECRET_KEY=${SECRET_KEY}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:8000}
     volumes:
       - ./backend/uploads:/app/backend/uploads
       - ./backend/reports:/app/backend/reports

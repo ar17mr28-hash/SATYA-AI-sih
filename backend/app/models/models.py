@@ -83,9 +83,16 @@ class Document(Base):
     file_path = Column(String(500), nullable=False)
     file_size = Column(Integer, default=0)
     mime_type = Column(String(100), default="application/pdf")
-    verification_status = Column(String(50), default="pending")  # pending, processing, verified, requires_review, rejected
-    verification_provider = Column(String(100), default="VerifyAI Mock Engine")
-    is_simulated = Column(Boolean, default=True)
+    # Separated State Model (OWASP / Defect 5.1)
+    processing_status = Column(String(50), default="UPLOADED")  # UPLOADED, PROCESSING, PROCESSED, PROCESSING_FAILED
+    authenticity_status = Column(String(50), default="NOT_CHECKED")  # NOT_CHECKED, CHECKS_PASSED, CHECKS_FAILED, REVIEW_REQUIRED, INCONCLUSIVE
+    file_hash_sha256 = Column(String(64), nullable=True)  # Real cryptographic SHA-256 integrity hash
+    authenticity_checks = Column(JSON, default=dict)  # Details of specific checks performed
+
+    # Legacy / UI mapped fields
+    verification_status = Column(String(50), default="requires_review")  # requires_review, not_authenticated, checks_passed, rejected
+    verification_provider = Column(String(100), default="VerifyAI Pipeline (SHA-256 Integrity + Cross-Check)")
+    is_simulated = Column(Boolean, default=False)
     uploaded_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     application = relationship("Application", back_populates="documents")
@@ -210,3 +217,29 @@ class AuditLog(Base):
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
 
     user = relationship("User", back_populates="audit_logs")
+
+
+class VerificationRun(Base):
+    __tablename__ = "verification_runs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    run_id = Column(String(100), unique=True, index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    query = Column(Text, nullable=True)
+    response_text = Column(Text, nullable=False)
+    overall_trust_score = Column(Float, default=0.0)
+    faithfulness_score = Column(Float, default=0.0)
+    grounding_coverage = Column(Float, default=0.0)
+    contradiction_rate = Column(Float, default=0.0)
+    risk_rating = Column(String(50), default="LOW_RISK")
+    total_claims = Column(Integer, default=0)
+    supported_count = Column(Integer, default=0)
+    contradicted_count = Column(Integer, default=0)
+    insufficient_count = Column(Integer, default=0)
+    unverifiable_count = Column(Integer, default=0)
+    claims_data = Column(JSON, default=list)
+    scorecard_data = Column(JSON, default=dict)
+    security_data = Column(JSON, default=dict)
+    execution_time_ms = Column(Float, default=0.0)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+

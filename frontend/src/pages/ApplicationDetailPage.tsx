@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import { ApplicationItem, User } from '../types';
-import { StatusBadge, RiskBadge } from '../components/StatusBadge';
+import { StatusBadge, RiskBadge, ProcessingStatusBadge, AuthenticityStatusBadge } from '../components/StatusBadge';
 
 interface ApplicationDetailPageProps {
   applicationId: number;
@@ -362,9 +362,13 @@ export const ApplicationDetailPage: React.FC<ApplicationDetailPageProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-mono px-2 py-0.5 rounded uppercase">
-                    {d.verification_status}
-                  </span>
+                  <ProcessingStatusBadge status={d.processing_status} />
+                  <AuthenticityStatusBadge status={d.authenticity_status} />
+                  {d.file_hash_sha256 && (
+                    <span className="hidden md:inline-block font-mono text-[9px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200" title={`SHA-256 Hash: ${d.file_hash_sha256}`}>
+                      SHA:{d.file_hash_sha256.substring(0, 8)}...
+                    </span>
+                  )}
 
                   <button
                     onClick={() => setExpandedDocId(expandedDocId === d.id ? null : d.id)}

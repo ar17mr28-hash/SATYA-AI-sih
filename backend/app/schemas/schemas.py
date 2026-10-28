@@ -11,7 +11,14 @@ class UserRegister(BaseModel):
     email: str
     password: str
     full_name: str
-    role: str = "institution_admin"  # institution_admin, review_officer, system_admin
+    role: Optional[str] = "institution_admin"  # Public registration strictly restricted to institution_admin
+    institution_id: Optional[int] = None
+
+class UserProvisionAdmin(BaseModel):
+    email: str
+    password: str
+    full_name: str
+    role: str  # review_officer or system_admin
     institution_id: Optional[int] = None
 
 class UserOut(BaseModel):
@@ -101,6 +108,10 @@ class DocumentOut(BaseModel):
     file_path: str
     file_size: int
     mime_type: str
+    processing_status: Optional[str] = "PROCESSED"
+    authenticity_status: Optional[str] = "NOT_CHECKED"
+    file_hash_sha256: Optional[str] = None
+    authenticity_checks: Optional[Dict[str, Any]] = None
     verification_status: str
     verification_provider: str
     is_simulated: bool
@@ -265,3 +276,87 @@ class AnalyticsOverview(BaseModel):
     common_findings: List[Dict[str, Any]]
     compliance_category_breakdown: List[Dict[str, Any]]
     applications_by_status: List[Dict[str, Any]]
+
+# ----------------- AI Verification Engine Schemas -----------------
+class EvidenceSourceInput(BaseModel):
+    source_id: str = "DOC-001"
+    title: str = "Reference Document"
+    text: str
+    page: Optional[int] = 1
+    metadata: Optional[Dict[str, Any]] = None
+
+class VerifyRequest(BaseModel):
+    response_text: str = Field(..., min_length=1, max_length=50000, description="AI-generated text or institutional claims to verify")
+    evidence_sources: List[EvidenceSourceInput] = Field(default_factory=list, description="Ground truth reference documents or excerpts")
+    query: Optional[str] = Field(None, max_length=1000, description="Optional prompt or query that prompted the response")
+    scan_security: bool = Field(True, description="Enable adversarial prompt injection and safety checks")
+
+class RetrievedEvidenceOut(BaseModel):
+    chunk_id: str
+    source_id: str
+    source_title: str
+    page_number: int
+    relevance_score: float
+    matched_tokens: List[str]
+    verbatim_snippet: str
+
+class ClaimVerdictOut(BaseModel):
+    claim_id: str
+    claim_text: str
+    start_char: int
+    end_char: int
+    claim_type: str
+    verdict: str  # SUPPORTED, CONTRADICTED, INSUFFICIENT_SUPPORT, UNVERIFIABLE
+    confidence: float
+    evidence: Optional[RetrievedEvidenceOut] = None
+    rationale: str
+    discrepancy_details: Optional[str] = None
+    limitations: Optional[str] = None
+
+class ScorecardOut(BaseModel):
+    total_claims: int
+    supported_count: int
+    contradicted_count: int
+    insufficient_support_count: int
+    unverifiable_count: int
+    faithfulness_score: float
+    grounding_coverage: float
+    contradiction_rate: float
+    unverifiable_rate: float
+    overall_trust_score: float
+    risk_rating: str
+    confidence_interval: List[float]
+    methodology_note: str
+
+class SecurityScanOut(BaseModel):
+    is_safe: bool
+    threat_count: int
+    findings: List[Dict[str, Any]] = []
+
+class VerifyResponse(BaseModel):
+    run_id: str
+    query: Optional[str] = None
+    response_text: str
+    claims: List[ClaimVerdictOut]
+    scorecard: ScorecardOut
+    security: SecurityScanOut
+    evidence_chunk_count: int
+    execution_time_ms: float
+    pipeline_version: str
+    created_at: datetime.datetime
+
+class VerificationRunSummaryOut(BaseModel):
+    run_id: str
+    query: Optional[str] = None
+    response_text: str
+    overall_trust_score: float
+    faithfulness_score: float
+    risk_rating: str
+    total_claims: int
+    supported_count: int
+    contradicted_count: int
+    execution_time_ms: float
+    created_at: datetime.datetime
+
+    model_config = ConfigDict(from_attributes=True)
+

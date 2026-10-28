@@ -64,3 +64,78 @@ export const RiskBadge: React.FC<{ risk: string }> = ({ risk }) => {
     </span>
   );
 };
+
+export const AuthenticityStatusBadge: React.FC<{ status?: string }> = ({ status }) => {
+  const norm = (status || 'NOT_CHECKED').toUpperCase();
+
+  switch (norm) {
+    case 'CHECKS_PASSED':
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-emerald-50 text-emerald-700 border border-emerald-300" title="All automated format and hash checks verified.">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          AUTH: PASSED
+        </span>
+      );
+    case 'CHECKS_FAILED':
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-red-50 text-red-700 border border-red-300" title="Integrity checks failed.">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+          AUTH: FAILED
+        </span>
+      );
+    case 'REVIEW_REQUIRED':
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-amber-50 text-amber-700 border border-amber-300" title="Flagged for manual scrutiny by review officer.">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+          AUTH: REVIEW REQ.
+        </span>
+      );
+    case 'INCONCLUSIVE':
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-purple-50 text-purple-700 border border-purple-300" title="Unreadable scan or missing OCR layer prevents machine determination.">
+          <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+          AUTH: INCONCLUSIVE
+        </span>
+      );
+    case 'NOT_CHECKED':
+    default:
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-slate-100 text-slate-600 border border-slate-300" title="Integrity registered (SHA-256). Institutional authenticity awaiting official verification.">
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+          AUTH: NOT CHECKED
+        </span>
+      );
+  }
+};
+
+export const ProcessingStatusBadge: React.FC<{ status?: string }> = ({ status }) => {
+  const norm = (status || 'PROCESSED').toUpperCase();
+
+  switch (norm) {
+    case 'PROCESSED':
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-blue-50 text-blue-700 border border-blue-200">
+          PROCESSED
+        </span>
+      );
+    case 'PROCESSING':
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-indigo-50 text-indigo-700 border border-indigo-200 animate-pulse">
+          PROCESSING...
+        </span>
+      );
+    case 'PROCESSING_FAILED':
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-red-50 text-red-700 border border-red-200">
+          PARSE FAILED
+        </span>
+      );
+    case 'UPLOADED':
+    default:
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-slate-100 text-slate-700 border border-slate-200">
+          UPLOADED
+        </span>
+      );
+  }
+};

@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   LayoutDashboard, FilePlus2, FileCheck2, ClipboardList, ShieldAlert,
-  Sliders, Building2, History, BarChart3, HelpCircle
+  Sliders, Building2, History, BarChart3, HelpCircle, Zap
 } from 'lucide-react';
 import { User } from '../types';
 
@@ -23,130 +23,145 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const role = user.role;
 
   const renderNavLinks = () => {
-    if (role === 'institution_admin') {
-      return (
-        <>
-          <div className="px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-slate-400">
-            Institution Services
+    return (
+      <>
+        {/* Core Role Navigation */}
+        {role === 'institution_admin' && (
+          <>
+            <div className="px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-slate-400">
+              Institution Services
+            </div>
+            <button
+              onClick={() => onNavigate('/dashboard')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                currentPath === '/dashboard'
+                  ? 'bg-royal-600 text-white shadow-md shadow-royal-600/30'
+                  : 'text-slate-300 hover:text-white hover:bg-navy-800'
+              }`}
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              <span>Overview & Status</span>
+            </button>
+
+            <button
+              onClick={() => onNavigate('/apply')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                currentPath === '/apply'
+                  ? 'bg-royal-600 text-white shadow-md shadow-royal-600/30'
+                  : 'text-slate-300 hover:text-white hover:bg-navy-800'
+              }`}
+            >
+              <FilePlus2 className="w-4 h-4" />
+              <span>Submit Application</span>
+            </button>
+
+            <button
+              onClick={() => onNavigate('/applications')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                currentPath === '/applications'
+                  ? 'bg-royal-600 text-white shadow-md shadow-royal-600/30'
+                  : 'text-slate-300 hover:text-white hover:bg-navy-800'
+              }`}
+            >
+              <ClipboardList className="w-4 h-4" />
+              <span>Submitted Applications</span>
+            </button>
+          </>
+        )}
+
+        {role === 'review_officer' && (
+          <>
+            <div className="px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-slate-400">
+              Scrutiny & Review
+            </div>
+            <button
+              onClick={() => onNavigate('/officer')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                currentPath === '/officer'
+                  ? 'bg-royal-600 text-white shadow-md shadow-royal-600/30'
+                  : 'text-slate-300 hover:text-white hover:bg-navy-800'
+              }`}
+            >
+              <ClipboardList className="w-4 h-4" />
+              <span>Review Queue</span>
+            </button>
+
+            <button
+              onClick={() => onNavigate('/analytics')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                currentPath === '/analytics'
+                  ? 'bg-royal-600 text-white shadow-md shadow-royal-600/30'
+                  : 'text-slate-300 hover:text-white hover:bg-navy-800'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span>Scrutiny Analytics</span>
+            </button>
+          </>
+        )}
+
+        {role === 'system_admin' && (
+          <>
+            <div className="px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-slate-400">
+              System Administration
+            </div>
+            <button
+              onClick={() => onNavigate('/admin')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                currentPath === '/admin'
+                  ? 'bg-royal-600 text-white shadow-md shadow-royal-600/30'
+                  : 'text-slate-300 hover:text-white hover:bg-navy-800'
+              }`}
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              <span>Admin Console</span>
+            </button>
+
+            <button
+              onClick={() => onNavigate('/admin/rules')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                currentPath === '/admin/rules'
+                  ? 'bg-royal-600 text-white shadow-md shadow-royal-600/30'
+                  : 'text-slate-300 hover:text-white hover:bg-navy-800'
+              }`}
+            >
+              <Sliders className="w-4 h-4" />
+              <span>Regulatory Rules Builder</span>
+            </button>
+
+            <button
+              onClick={() => onNavigate('/analytics')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                currentPath === '/analytics'
+                  ? 'bg-royal-600 text-white shadow-md shadow-royal-600/30'
+                  : 'text-slate-300 hover:text-white hover:bg-navy-800'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span>Executive Analytics</span>
+            </button>
+          </>
+        )}
+
+        {/* AI Verification Engine & Benchmark Section (All Users & Judges) */}
+        <div className="pt-3 border-t border-navy-800/80">
+          <div className="px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-cyan-400 font-bold">
+            AI Engine & Benchmark
           </div>
           <button
-            onClick={() => onNavigate('/dashboard')}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
-              currentPath === '/dashboard'
-                ? 'bg-royal-600 text-white shadow-md shadow-royal-600/30'
-                : 'text-slate-300 hover:text-white hover:bg-navy-800'
+            onClick={() => onNavigate('/verification-studio')}
+            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+              currentPath === '/verification-studio'
+                ? 'bg-gradient-to-r from-royal-600 to-cyan-600 text-white shadow-md shadow-royal-600/30'
+                : 'text-cyan-300 hover:text-white hover:bg-navy-800'
             }`}
           >
-            <LayoutDashboard className="w-4 h-4" />
-            <span>Overview & Status</span>
+            <Zap className="w-4 h-4 text-cyan-400" />
+            <span>Verification Studio</span>
           </button>
-
-          <button
-            onClick={() => onNavigate('/apply')}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
-              currentPath === '/apply'
-                ? 'bg-royal-600 text-white shadow-md shadow-royal-600/30'
-                : 'text-slate-300 hover:text-white hover:bg-navy-800'
-            }`}
-          >
-            <FilePlus2 className="w-4 h-4" />
-            <span>Submit Application</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate('/applications')}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
-              currentPath === '/applications'
-                ? 'bg-royal-600 text-white shadow-md shadow-royal-600/30'
-                : 'text-slate-300 hover:text-white hover:bg-navy-800'
-            }`}
-          >
-            <ClipboardList className="w-4 h-4" />
-            <span>Submitted Applications</span>
-          </button>
-        </>
-      );
-    }
-
-    if (role === 'review_officer') {
-      return (
-        <>
-          <div className="px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-slate-400">
-            Scrutiny & Review
-          </div>
-          <button
-            onClick={() => onNavigate('/officer')}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
-              currentPath === '/officer'
-                ? 'bg-royal-600 text-white shadow-md shadow-royal-600/30'
-                : 'text-slate-300 hover:text-white hover:bg-navy-800'
-            }`}
-          >
-            <ClipboardList className="w-4 h-4" />
-            <span>Review Queue</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate('/analytics')}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
-              currentPath === '/analytics'
-                ? 'bg-royal-600 text-white shadow-md shadow-royal-600/30'
-                : 'text-slate-300 hover:text-white hover:bg-navy-800'
-            }`}
-          >
-            <BarChart3 className="w-4 h-4" />
-            <span>Scrutiny Analytics</span>
-          </button>
-        </>
-      );
-    }
-
-    if (role === 'system_admin') {
-      return (
-        <>
-          <div className="px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-slate-400">
-            System Administration
-          </div>
-          <button
-            onClick={() => onNavigate('/admin')}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
-              currentPath === '/admin'
-                ? 'bg-royal-600 text-white shadow-md shadow-royal-600/30'
-                : 'text-slate-300 hover:text-white hover:bg-navy-800'
-            }`}
-          >
-            <LayoutDashboard className="w-4 h-4" />
-            <span>Admin Console</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate('/admin/rules')}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
-              currentPath === '/admin/rules'
-                ? 'bg-royal-600 text-white shadow-md shadow-royal-600/30'
-                : 'text-slate-300 hover:text-white hover:bg-navy-800'
-            }`}
-          >
-            <Sliders className="w-4 h-4" />
-            <span>Regulatory Rules Builder</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate('/analytics')}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
-              currentPath === '/analytics'
-                ? 'bg-royal-600 text-white shadow-md shadow-royal-600/30'
-                : 'text-slate-300 hover:text-white hover:bg-navy-800'
-            }`}
-          >
-            <BarChart3 className="w-4 h-4" />
-            <span>Executive Analytics</span>
-          </button>
-        </>
-      );
-    }
-
-    return null;
+        </div>
+      </>
+    );
   };
 
   return (

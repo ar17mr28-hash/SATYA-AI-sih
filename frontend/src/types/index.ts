@@ -56,6 +56,10 @@ export interface DocumentItem {
   file_path: string;
   file_size: number;
   mime_type: string;
+  processing_status?: 'UPLOADED' | 'PROCESSING' | 'PROCESSED' | 'PROCESSING_FAILED' | string;
+  authenticity_status?: 'NOT_CHECKED' | 'CHECKS_PASSED' | 'CHECKS_FAILED' | 'REVIEW_REQUIRED' | 'INCONCLUSIVE' | string;
+  file_hash_sha256?: string | null;
+  authenticity_checks?: Record<string, any> | null;
   verification_status: string;
   verification_provider: string;
   is_simulated: boolean;
@@ -162,3 +166,129 @@ export interface DemoScenario {
   description: string;
   expected_result: string;
 }
+
+// ---------------- AI Verification & Benchmark Types ----------------
+export interface EvidenceSourceInput {
+  source_id: string;
+  title: string;
+  text: string;
+  page?: number;
+  metadata?: Record<string, any>;
+}
+
+export interface RetrievedEvidence {
+  chunk_id: string;
+  source_id: string;
+  source_title: string;
+  page_number: number;
+  relevance_score: number;
+  matched_tokens: string[];
+  verbatim_snippet: string;
+}
+
+export interface ClaimVerdict {
+  claim_id: string;
+  claim_text: string;
+  start_char: number;
+  end_char: number;
+  claim_type: string;
+  verdict: 'SUPPORTED' | 'CONTRADICTED' | 'INSUFFICIENT_SUPPORT' | 'UNVERIFIABLE' | 'BLOCKED';
+  confidence: number;
+  evidence?: RetrievedEvidence | null;
+  rationale: string;
+  discrepancy_details?: string | null;
+  limitations?: string | null;
+}
+
+export interface Scorecard {
+  total_claims: number;
+  supported_count: number;
+  contradicted_count: number;
+  insufficient_support_count: number;
+  unverifiable_count: number;
+  faithfulness_score: number;
+  grounding_coverage: number;
+  contradiction_rate: number;
+  unverifiable_rate: number;
+  overall_trust_score: number;
+  risk_rating: 'LOW_RISK' | 'MODERATE_RISK' | 'HIGH_RISK' | 'INCONCLUSIVE';
+  confidence_interval: [number, number];
+  methodology_note: string;
+}
+
+export interface SecurityScan {
+  is_safe: boolean;
+  threat_count: number;
+  findings: Array<{
+    threat_type: string;
+    severity: string;
+    matched_pattern: string;
+    source_label?: string;
+    recommendation?: string;
+  }>;
+}
+
+export interface VerifyResponse {
+  run_id: string;
+  query?: string | null;
+  response_text: string;
+  claims: ClaimVerdict[];
+  scorecard: Scorecard;
+  security: SecurityScan;
+  evidence_chunk_count: number;
+  execution_time_ms: number;
+  pipeline_version: string;
+  created_at: string;
+}
+
+export interface VerificationRunSummary {
+  run_id: string;
+  query?: string | null;
+  response_text: string;
+  overall_trust_score: number;
+  faithfulness_score: number;
+  risk_rating: string;
+  total_claims: number;
+  supported_count: number;
+  contradicted_count: number;
+  execution_time_ms: number;
+  created_at: string;
+}
+
+export interface BenchmarkMetrics {
+  timestamp: string;
+  total_cases: number;
+  passed_cases: number;
+  failed_cases: number;
+  accuracy: number;
+  precision: number;
+  recall: number;
+  f1_score: number;
+  confusion_matrix: {
+    true_positives: number;
+    false_positives: number;
+    true_negatives: number;
+    false_negatives: number;
+  };
+  latency: {
+    avg_ms: number;
+    min_ms: number;
+    max_ms: number;
+    p95_ms: number;
+  };
+  baseline_comparison: {
+    verifyai_accuracy: number;
+    naive_baseline_accuracy: number;
+    accuracy_delta: number;
+  };
+  cases: Array<{
+    case_id: string;
+    category: string;
+    expected: string;
+    actual: string;
+    passed: boolean;
+    latency_ms: number;
+    trust_score: number;
+  }>;
+}
+
